@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useRouter } from "next/navigation";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { ZwapClient } from "@zwap/solana";
 import { useWalletAuth } from "@/hooks/use-wallet-auth";
+import { trpc } from "@/utils/trpc";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -18,18 +22,24 @@ import { Loader2 } from "lucide-react";
 
 type Token = "SOL" | "USDC";
 
+const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // Mainnet USDC
+
 export function DepositForm() {
   const { publicKey, signTransaction } = useWallet();
   const { isAuthenticated } = useWalletAuth();
+  const router = useRouter();
   const [token, setToken] = useState<Token>("SOL");
   const [amount, setAmount] = useState("");
   const [zcashAddress, setZcashAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const startDeposit = trpc.deposit.startDeposit.useMutation();
+  const updateSolanaTx = trpc.deposit.updateSolanaTx.useMutation();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAuthenticated || !publicKey) {
+    if (!isAuthenticated || !publicKey || !signTransaction) {
       toast.error("Please connect your wallet");
       return;
     }
@@ -52,16 +62,75 @@ export function DepositForm() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement deposit transaction
-      // 1. Create Solana transaction
-      // 2. Sign transaction
-      // 3. Send to backend
-      // 4. Redirect to status page
+      // 1. Create deposit record in backend
+      toast.loading("Creating deposit...");
+      const deposit = await startDeposit.mutateAsync({
+        asset: token,
+        amount: amount,
+        zAddress: zcashAddress,
+        userPubkey: publicKey.toString(),
+      });
 
-      toast.success("Deposit initiated");
-      // Temporary: simulate redirect
-      // router.push(`/status/${signature}`);
+      toast.dismiss();
+      toast.loading("Building transaction...");
+
+      // 2. Create Solana transaction
+      const connection = new Connection(
+        process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.devnet.solana.com",
+        "confirmed"
+      );
+
+      const zwapClient = new ZwapClient(connection, { publicKey });
+
+      let transaction;
+      if (token === "SOL") {
+        transaction = await zwapClient.buildDepositSolTransaction(
+          publicKey,
+          parseFloat(amount),
+          deposit.depositId,
+          zcashAddress
+        );
+      } else {
+        transaction = await zwapClient.buildDepositUsdcTransaction(
+          publicKey,
+          parseFloat(amount),
+          deposit.depositId,
+          zcashAddress,
+          USDC_MINT
+        );
+      }
+
+      // 3. Sign transaction
+      toast.dismiss();
+      toast.loading("Waiting for signature...");
+      const signedTx = await signTransaction(transaction);
+
+      // 4. Send transaction
+      toast.dismiss();
+      toast.loading("Sending transaction...");
+      const signature = await connection.sendRawTransaction(
+        signedTx.serialize()
+      );
+
+      // 5. Confirm transaction
+      toast.dismiss();
+      toast.loading("Confirming transaction...");
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // 6. Update backend with signature
+      await updateSolanaTx.mutateAsync({
+        depositId: deposit.depositId,
+        solanaTx: signature,
+      });
+
+      toast.dismiss();
+      toast.success("Deposit successful!");
+
+      // 7. Redirect to status page
+      router.push(`/status/${signature}`);
     } catch (error) {
+      toast.dismiss();
+      console.error("Deposit error:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to create deposit"
       );

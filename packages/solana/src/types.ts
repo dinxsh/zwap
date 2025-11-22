@@ -1,13 +1,189 @@
 import type { PublicKey } from "@solana/web3.js";
+import type { Idl } from "@coral-xyz/anchor";
 
-export interface ProgramAccount {
-	publicKey: PublicKey;
-	account: unknown;
+export type Zwap = Idl & {
+	version: "0.1.0";
+	name: "zwap";
+	instructions: [
+		{
+			name: "initialize";
+			accounts: [
+				{
+					name: "vault";
+					isMut: true;
+					isSigner: false;
+				},
+				{
+					name: "authority";
+					isMut: true;
+					isSigner: true;
+				},
+				{
+					name: "systemProgram";
+					isMut: false;
+					isSigner: false;
+				},
+			];
+			args: [];
+		},
+		{
+			name: "depositSol";
+			accounts: [
+				{
+					name: "vault";
+					isMut: true;
+					isSigner: false;
+				},
+				{
+					name: "user";
+					isMut: true;
+					isSigner: true;
+				},
+				{
+					name: "systemProgram";
+					isMut: false;
+					isSigner: false;
+				},
+			];
+			args: [
+				{
+					name: "amount";
+					type: "u64";
+				},
+				{
+					name: "depositId";
+					type: "string";
+				},
+				{
+					name: "zAddress";
+					type: "string";
+				},
+			];
+		},
+		{
+			name: "depositUsdc";
+			accounts: [
+				{
+					name: "vault";
+					isMut: true;
+					isSigner: false;
+				},
+				{
+					name: "user";
+					isMut: true;
+					isSigner: true;
+				},
+				{
+					name: "userTokenAccount";
+					isMut: true;
+					isSigner: false;
+				},
+				{
+					name: "vaultTokenAccount";
+					isMut: true;
+					isSigner: false;
+				},
+				{
+					name: "tokenProgram";
+					isMut: false;
+					isSigner: false;
+				},
+			];
+			args: [
+				{
+					name: "amount";
+					type: "u64";
+				},
+				{
+					name: "depositId";
+					type: "string";
+				},
+				{
+					name: "zAddress";
+					type: "string";
+				},
+			];
+		},
+	];
+	accounts: [
+		{
+			name: "vault";
+			type: {
+				kind: "struct";
+				fields: [
+					{
+						name: "authority";
+						type: "publicKey";
+					},
+					{
+						name: "bump";
+						type: "u8";
+					},
+				];
+			};
+		},
+	];
+	events: [
+		{
+			name: "DepositEvent";
+			fields: [
+				{
+					name: "userPubkey";
+					type: "publicKey";
+					index: false;
+				},
+				{
+					name: "asset";
+					type: "string";
+					index: false;
+				},
+				{
+					name: "amount";
+					type: "u64";
+					index: false;
+				},
+				{
+					name: "zAddress";
+					type: "string";
+					index: false;
+				},
+				{
+					name: "depositId";
+					type: "string";
+					index: false;
+				},
+				{
+					name: "timestamp";
+					type: "i64";
+					index: false;
+				},
+			];
+		},
+	];
+	errors: [
+		{
+			code: 6000;
+			name: "InvalidAmount";
+			msg: "Invalid amount: must be greater than 0";
+		},
+		{
+			code: 6001;
+			name: "InvalidZAddress";
+			msg: "Invalid Zcash address: must start with 'z' or 'u1'";
+		},
+	];
+};
+
+export interface DepositEvent {
+	userPubkey: PublicKey;
+	asset: "SOL" | "USDC";
+	amount: bigint;
+	zAddress: string;
+	depositId: string;
+	timestamp: bigint;
 }
 
-export interface SwapParams {
-	fromToken: PublicKey;
-	toToken: PublicKey;
-	amount: bigint;
-	minAmountOut: bigint;
+export interface VaultAccount {
+	authority: PublicKey;
+	bump: number;
 }

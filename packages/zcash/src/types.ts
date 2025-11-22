@@ -1,33 +1,49 @@
-import type { PublicKey } from "@solana/web3.js";
+export interface ZcashConfig {
+	rpcUrl: string;
+	rpcUser: string;
+	rpcPassword: string;
+}
 
-/**
- * Zcash Unified Address - supports both transparent and shielded addresses
- */
-export interface ZcashUnifiedAddress {
+export interface ZSendManyAmount {
 	address: string;
-	viewingKey?: string; // Optional viewing key for selective disclosure
+	amount: number;
+	memo?: string;
 }
 
-/**
- * Deposit parameters for ZEC → zZEC
- */
-export interface DepositParams {
-	userSolanaAddress: PublicKey;
+export interface OperationStatus {
+	id: string;
+	status: "queued" | "executing" | "success" | "failed" | "cancelled";
+	creation_time: number;
+	result?: {
+		txid: string;
+	};
+	error?: {
+		code: number;
+		message: string;
+	};
 }
 
-/**
- * Withdraw parameters for zZEC → ZEC
- */
-export interface WithdrawParams {
-	from: PublicKey;
-	amount: string; // Amount in ZEC (as string to avoid precision issues)
-	zcashAddress: string; // Unified Address
-	viewingKey?: string; // Optional viewing key for compliance/selective disclosure
+export interface ZcashBalance {
+	transparent: string;
+	private: string;
+	total: string;
 }
 
-/**
- * Deposit result containing the Zcash deposit address
- */
-export interface DepositResult {
-	zcashDepositAddress: string;
+export interface AddressValidation {
+	isvalid: boolean;
+	address?: string;
+	scriptPubKey?: string;
+	ismine?: boolean;
+	iswatchonly?: boolean;
+	isscript?: boolean;
+	type?: "shielded" | "transparent";
+}
+
+export interface BlockchainInfo {
+	chain: string;
+	blocks: number;
+	bestblockhash: string;
+	difficulty: number;
+	verificationprogress: number;
+	chainwork: string;
 }
