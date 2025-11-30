@@ -1,16 +1,9 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import {
-  Program,
-  AnchorProvider,
-  BN,
-  EventParser,
-  BorshCoder,
-} from "@coral-xyz/anchor";
+import { BN, EventParser, BorshCoder } from "@coral-xyz/anchor";
 import { db, deposits } from "@zwap/db";
 import { eq } from "drizzle-orm";
 import { ZcashClient } from "@zwap/zcash";
-import type { DepositEvent } from "@zwap/solana";
-import { idl } from "@zwap/solana";
+import { idl, type DepositEvent } from "@zwap/solana";
 
 interface RelayerConfig {
   solanaRpcUrl: string;
@@ -38,22 +31,29 @@ export class Relayer {
 
     // Create event parser directly using BorshCoder
     // Convert events to types format (required by BorshCoder)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const events = (idl as any).events || [];
     // Map type names to Anchor's expected format
     const mapType = (type: string) => {
       if (type === "publicKey") return "pubkey";
       return type;
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
     const idlForCoder = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       version: (idl as any).version,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       name: (idl as any).name,
       events: events,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       instructions: (idl as any).instructions || [], // Required by BorshCoder
       accounts: [], // Empty accounts array - we only need events
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       types: events.map((ev: any) => ({
         name: ev.name,
         type: {
           kind: "struct",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           fields: (ev.fields || []).map((field: any) => ({
             name: field.name,
             type:
@@ -62,6 +62,7 @@ export class Relayer {
         },
       })),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
     const coder = new BorshCoder(idlForCoder as any);
     this.eventParser = new EventParser(this.programId, coder);
 
@@ -120,7 +121,7 @@ export class Relayer {
   /**
    * Handle program logs and extract deposit events
    */
-  private async handleLogs(logs: any): Promise<void> {
+  private async handleLogs(logs: { signature: string }): Promise<void> {
     const signature = logs.signature;
     console.log(`\n📝 Processing transaction: ${signature}`);
 
@@ -141,7 +142,10 @@ export class Relayer {
 
       for (const event of events) {
         if (event.name === "DepositEvent") {
-          await this.processDeposit(event.data as any, signature);
+          await this.processDeposit(
+            event.data as DepositEvent & { amount: BN },
+            signature
+          );
         }
       }
     } catch (error) {
@@ -152,8 +156,11 @@ export class Relayer {
   /**
    * Process a deposit event
    */
-  private async processDeposit(event: any, signature: string): Promise<void> {
-    console.log(`\n💰 New deposit detected!`);
+  private async processDeposit(
+    event: DepositEvent & { amount: BN },
+    signature: string
+  ): Promise<void> {
+    console.log("\n💰 New deposit detected!");
     console.log(`  User: ${event.userPubkey.toString()}`);
     console.log(`  Asset: ${event.asset}`);
     console.log(`  Amount: ${event.amount.toString()}`);
@@ -209,7 +216,7 @@ export class Relayer {
       // Send ZEC
       await this.sendZec(deposit.id, event.zAddress, zecAmount);
     } catch (error) {
-      console.error(`❌ Error processing deposit:`, error);
+      console.error("❌ Error processing deposit:", error);
 
       // Mark as failed
       try {
@@ -234,11 +241,10 @@ export class Relayer {
       // Convert lamports to SOL
       const solAmount = amount / 1e9;
       return solAmount * this.config.solToZecRate;
-    } else {
-      // Convert USDC (6 decimals) to ZEC
-      const usdcAmount = amount / 1e6;
-      return usdcAmount * this.config.usdcToZecRate;
     }
+    // Convert USDC (6 decimals) to ZEC
+    const usdcAmount = amount / 1e6;
+    return usdcAmount * this.config.usdcToZecRate;
   }
 
   /**
@@ -286,12 +292,12 @@ export class Relayer {
           })
           .where(eq(deposits.id, depositId));
 
-        console.log(`✅ Database updated with ZEC TXID`);
+        console.log("✅ Database updated with ZEC TXID");
       } else {
         throw new Error(result.error || "ZEC transfer failed");
       }
     } catch (error) {
-      console.error(`❌ Failed to send ZEC:`, error);
+      console.error("❌ Failed to send ZEC:", error);
 
       // Mark as failed
       await db
