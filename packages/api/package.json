@@ -17,14 +17,19 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
-		"@trpc/server": "catalog:",
-		"@trpc/client": "catalog:",
-		"next": "catalog:",
-		"dotenv": "catalog:",
-		"zod": "catalog:",
-		"@zwap/db": "workspace:*",
+		"@coral-xyz/anchor": "^0.32.1",
 		"@solana/web3.js": "^1.95.8",
+		"@trpc/client": "catalog:",
+		"@trpc/server": "catalog:",
+		"@zwap/db": "workspace:*",
+		"@zwap/zcash": "workspace:*",
 		"bs58": "^6.0.0",
-		"tweetnacl": "^1.0.3"
+		"dotenv": "catalog:",
+		"drizzle-orm": "^0.44.2",
+		"next": "catalog:",
+		"pg": "^8.14.1",
+		"tweetnacl": "^1.0.3",
+		"ws": "^8.18.0",
+		"zod": "catalog:"
 	}
 }

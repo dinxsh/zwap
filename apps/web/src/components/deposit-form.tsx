@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { ZwapClient } from "@zwap/solana";
 import { useWalletAuth } from "@/hooks/use-wallet-auth";
-import { trpc } from "@/utils/trpc";
+import { queryClient, trpcClient } from "@/utils/trpc";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -32,9 +32,6 @@ export function DepositForm() {
   const [amount, setAmount] = useState("");
   const [zcashAddress, setZcashAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const startDeposit = trpc.deposit.startDeposit.useMutation();
-  const updateSolanaTx = trpc.deposit.updateSolanaTx.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +61,7 @@ export function DepositForm() {
     try {
       // 1. Create deposit record in backend
       toast.loading("Creating deposit...");
-      const deposit = await startDeposit.mutateAsync({
+      const deposit = await trpcClient.deposit.startDeposit.mutate({
         asset: token,
         amount: amount,
         zAddress: zcashAddress,
@@ -118,7 +115,7 @@ export function DepositForm() {
       await connection.confirmTransaction(signature, "confirmed");
 
       // 6. Update backend with signature
-      await updateSolanaTx.mutateAsync({
+      await trpcClient.deposit.updateSolanaTx.mutate({
         depositId: deposit.depositId,
         solanaTx: signature,
       });

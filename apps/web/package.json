@@ -8,6 +8,8 @@
 		"start": "next start"
 	},
 	"dependencies": {
+		"@coral-xyz/anchor": "^0.32.1",
+		"@solana/spl-token": "^0.4.14",
 		"@solana/wallet-adapter-base": "^0.9.23",
 		"@solana/wallet-adapter-react": "^0.15.35",
 		"@solana/wallet-adapter-react-ui": "^0.9.35",
@@ -19,6 +21,10 @@
 		"@trpc/server": "catalog:",
 		"@trpc/tanstack-react-query": "^11.5.0",
 		"@zwap/api": "workspace:*",
+		"@zwap/db": "workspace:*",
+		"@zwap/solana": "workspace:*",
+		"@zwap/zcash": "workspace:*",
+		"axios": "^1.13.2",
 		"babel-plugin-react-compiler": "^1.0.0",
 		"bs58": "^6.0.0",
 		"class-variance-authority": "^0.7.1",
