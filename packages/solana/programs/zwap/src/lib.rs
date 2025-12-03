@@ -23,7 +23,7 @@ pub mod zwap {
     ) -> Result<()> {
         require!(amount > 0, ErrorCode::InvalidAmount);
         require!(
-            z_address.starts_with("z") || z_address.starts_with("u1"),
+            !z_address.is_empty() && (z_address.starts_with("z") || z_address.starts_with("u1")),
             ErrorCode::InvalidZAddress
         );
 
@@ -63,7 +63,7 @@ pub mod zwap {
     ) -> Result<()> {
         require!(amount > 0, ErrorCode::InvalidAmount);
         require!(
-            z_address.starts_with("z") || z_address.starts_with("u1"),
+            !z_address.is_empty() && (z_address.starts_with("z") || z_address.starts_with("u1")),
             ErrorCode::InvalidZAddress
         );
 
